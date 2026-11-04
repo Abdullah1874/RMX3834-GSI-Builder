@@ -1,1 +1,10 @@
-xx
+# Bluetooth Audio A2DP Offload Fix for Unisoc ums9230
+persist.bluetooth.a2dp_offload.disabled=true
+ro.bluetooth.a2dp_offload.supported=false
+
+# Force hardware acceleration & smooth 90Hz frame pacing on Mali-G57
+debug.sf.latch_unsignaled=1
+ro.surface_flinger.use_content_detection_for_refresh_rate=true
+
+# Memory Optimization for 4GB RAM RMX3834
+ro.lmk.use_psi=true
