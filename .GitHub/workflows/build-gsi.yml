@@ -1,1 +1,95 @@
-ab
+name: RMX3834 GSI Builder & Optimizer
+
+on:
+  workflow_dispatch:
+    inputs:
+      gsi_url:
+        description: '1. Direct Download URL of the GSI (.img, .xz, .gz, .zip)'
+        required: true
+        type: string
+      rom_name:
+        description: '2. Output ROM Name (e.g., crDroid-12.12-dotj)'
+        required: true
+        default: 'GSI'
+        type: string
+      output_fs:
+        description: '3. Target Filesystem Format'
+        required: true
+        default: 'erofs'
+        type: choice
+        options:
+          - erofs
+          - ext4
+      vndk_cleanup:
+        description: '4. Remove Unnecessary VNDK Versions (Saves 300MB-600MB)'
+        required: true
+        default: 'keep-33-34'
+        type: choice
+        options:
+          - keep-33-34
+          - keep-33-only
+          - keep-34-only
+          - none
+      debloat_gsi:
+        description: '5. Remove unused OEM keylayouts & gamepad bloat'
+        required: true
+        default: true
+        type: boolean
+      inject_rmx3834_patches:
+        description: '6. Inject RMX3834 props & overlays (from device/rmx3834)'
+        required: true
+        default: true
+        type: boolean
+      compress_xz:
+        description: '7. Compress final output to .img.xz'
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Maximize Runner Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost
+          df -h
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Repacking Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y aria2 xz-utils gzip p7zip-full erofs-utils \
+            android-sdk-libsparse-utils e2fsprogs
+
+      - name: Make Scripts Executable
+        run: chmod +x scripts/*.sh
+
+      - name: Step 1 - Download & Unpack GSI
+        run: ./scripts/01_unpack.sh "${{ inputs.gsi_url }}"
+
+      - name: Step 2 - Optimize VNDK, Debloat & Patch for RMX3834
+        run: |
+          ./scripts/02_optimize_and_patch.sh \
+            "${{ inputs.vndk_cleanup }}" \
+            "${{ inputs.debloat_gsi }}" \
+            "${{ inputs.inject_rmx3834_patches }}"
+
+      - name: Step 3 - Repack into ${{ inputs.output_fs }}
+        run: |
+          ./scripts/03_repack.sh \
+            "${{ inputs.rom_name }}" \
+            "${{ inputs.output_fs }}" \
+            "${{ inputs.compress_xz }}"
+
+      - name: Upload Built GSI to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.rom_name }}-RMX3834-${{ inputs.output_fs }}
+          path: work/*.img*
+          retention-days: 7
