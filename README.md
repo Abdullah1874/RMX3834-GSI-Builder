@@ -1,11 +1,11 @@
 <div align="center">
 
-# 🛠️ RMX3834 GSI Builder & Patcher
-**Automated Cloud CI Pipeline for Building Device-Tailored GSIs for Realme Note 50 (`RMX3834`)**
+# 🛠️ RMX3834 GSI Builder & Optimizer
+**Automated Cloud CI Kitchen for Building & Slimming Device-Tailored GSIs for Realme Note 50 (`RMX3834`)**
 
 [![Device](https://img.shields.io/badge/Device-Realme%20Note%2050%20(RMX3834)-yellow?style=for-the-badge&logo=android)](https://github.com/)
 [![SoC](https://img.shields.io/badge/SoC-Unisoc%20Tiger%20T612%20(ums9230)-blue?style=for-the-badge&logo=linux)](https://github.com/)
-[![CI Status](https://img.shields.io/badge/GitHub%20Actions-Active%20WIP-success?style=for-the-badge&logo=githubactions)](https://github.com/)
+[![VNDK](https://img.shields.io/badge/VNDK-33%20%7C%2034-purple?style=for-the-badge)](https://github.com/)
 [![Filesystem](https://img.shields.io/badge/FS-EROFS%20%7C%20EXT4-orange?style=for-the-badge)](https://github.com/)
 
 </div>
@@ -14,64 +14,64 @@
 
 ## 📖 Overview
 
-**RMX3834-GSI-Builder** is an automated GitHub Actions kitchen designed specifically for the **Realme Note 50 (`RMX3834`)**. 
+**RMX3834-GSI-Builder** is an automated GitHub Actions pipeline built for the **Realme Note 50 (`RMX3834` / `ums9230_hulk`)**. 
 
-While Generic System Images (GSIs) from maintainers like **Doze-off (dotj)**, **Ponce**, **AndyYan**, and **Nazim** boot on Project Treble devices, running a raw GSI often requires manual post-install tweaking for device-specific quirks. This repository automates the process of downloading any upstream `.img` or `.img.xz` GSI release, mounting the filesystem, injecting **RMX3834-specific overlays, properties, and vendor fixes**, and repacking it into a ready-to-flash image.
+Upstream Generic System Images (GSIs) from maintainers like **Doze-off (dotj)**, **Ponce**, **AndyYan**, and **Nazim** are designed to support hundreds of devices simultaneously. Because of that, they bundle legacy VNDK APEX packages (v28–v32), ratusan unused hardware keylayouts, and generic configurations that waste **300MB–600MB+** of space inside the RMX3834's dynamic `super` partition.
 
----
-
-## ✨ Key Features & Project Goals
-
-* 🌐 **Direct URL Fetching:** Paste any direct download link (`.img`, `.xz`, `.gz`, `.zip`) from any GSI maintainer into the GitHub Actions workflow input.
-* 🎨 **RMX3834 Hardware Overlay Injection:** Automatically injects RRO overlays tailored for the Realme Note 50 (correct status bar padding, waterdrop notch cutout, auto-brightness arrays, and refresh rate profiles).
-* 🔧 **Unisoc T612 (`ums9230_hulk`) Prop Tuning:** Appends device-specific `build.prop` configurations for smoother UI rendering, audio routing, and memory management on 4GB RAM variants.
-* 📦 **EROFS & EXT4 Repacking:** Supports unpacking read-only EROFS or EXT4 images and repacking them into compressed EROFS (for space-saving inside `super`) or RW-capable EXT4 images.
-* 🧩 **Prebuilt Partition Integration *(WIP)*:** Integrates stock RMX3834 partitions (`vendor.img`, `product.img`, `system_ext.img`, `boot.img`, `vendor_boot.img`, `dtbo.img`) for optional full `super.img` generation or bundled fastboot flashable packages.
+This repository takes any direct GSI download URL, unpacks the filesystem (whether `EXT4` or `EROFS`), strips unneeded VNDK versions, removes irrelevant OEM hardware files, injects **RMX3834-specific configurations**, and repacks it into a clean, storage-optimized `.img` or `.img.xz` ready for flashing or DSU sideloading.
 
 ---
 
-## 📱 Target Device Specifications
+## ⚙️ Core Pipeline Features
 
-* **Device:** Realme Note 50
-* **Model:** `RMX3834`
-* **Board / Platform:** `ums9230_hulk` (Unisoc Tiger T612)
-* **Architecture:** `arm64-v8a` (64-bit Binder)
-* **Treble Layout:** `system-as-root` (A/B Dynamic Partitions - `arm64_bgN` / `arm64_bvN`)
+* 🌐 **Universal GSI Input:** Supports direct links to `.img`, `.img.xz`, `.img.gz`, or `.zip` archives from any maintainer.
+* 🧹 **Smart VNDK Stripping:** Automatically removes legacy VNDK APEXes (`v27` through `v32`) from `/system/system_ext/apex/`, keeping only `VNDK 33` and/or `VNDK 34` required by the Realme Note 50 vendor partition.
+* 💾 **Dual Filesystem Output (`EROFS` / `EXT4`):**
+  * **EROFS (`lz4hc`):** Compresses the read-only system partition for maximum free space inside `super` and faster random read speeds.
+  * **EXT4 (`resize2fs -M`):** Builds a read/write-capable image shrunk to its minimum possible footprint.
+* 🗑️ **Treble Keylayout & Bloat Cleanup:** Purges unused Phh keylayouts (Samsung, Xiaomi, Moto, Unihertz, gaming controllers) while preserving `Generic.kl`, `gpio-keys.kl`, `adaptive_ts.kl`, and Oppo/Realme touch configs.
+* 🔧 **RMX3834 Hardware Patching:** Injects Unisoc `ums9230_hulk` system properties, Bluetooth A2DP offload fixes, and display configuration (`display_id_4619827259835644672.xml`).
 
 ---
 
-## 🚀 How to Use (GitHub Actions Workflow)
+## 📱 Target Device Profile
+
+| Parameter | Specification |
+| :--- | :--- |
+| **Device** | Realme Note 50 (`RMX3834`) |
+| **Platform / Board** | Unisoc Tiger T612 (`ums9230_hulk`) |
+| **Architecture** | `arm64-v8a` (64-bit Binder, A/B Dynamic Partitions) |
+| **Native Vendor VNDK** | VNDK 33 (Android 13) / VNDK 34 (Android 14) |
+| **Display Config ID** | `4619827259835644672` |
+| **Touch & Keylayout** | `adaptive_ts.kl`, `gpio-keys.kl` |
+
+---
+
+## 🚀 How to Build Your GSI
 
 1. **Fork** this repository to your GitHub account.
-2. Navigate to the **Actions** tab in your forked repository.
-3. Select the **Build & Patch RMX3834 GSI** workflow on the left sidebar.
-4. Click the **Run workflow** dropdown button and fill in the parameters:
-   * **`gsi_url`**: Paste the direct `.img.xz` or `.img` download link (e.g., from Doze-off, crDroid, LineageOS, or Evolution X GSI releases).
-   * **`rom_name`**: Name of the ROM for the output file (e.g., `crDroid-12.12` or `LineageOS-23.2`).
-   * **`output_fs`**: Choose between `erofs` (recommended, smaller & faster) or `ext4`.
-   * **`compress_xz`**: Choose `true` to compress the final output as `.img.xz` or `false` for raw `.img`.
-5. Wait for the runner to finish patching and repacking. Download your customized RMX3834 build from the **Releases** or **Artifacts** section!
+2. Open the **Actions** tab and select **RMX3834 GSI Builder & Optimizer**.
+3. Click **Run workflow** and configure your build options:
+   * **`gsi_url`**: Direct download link to your chosen GSI release.
+   * **`rom_name`**: Custom prefix for the output file (e.g., `crDroid-12.12-dotj`).
+   * **`output_fs`**: Select `erofs` (recommended for size/performance) or `ext4` (if you need read/write system root).
+   * **`vndk_cleanup`**: Select `keep-33-34` (safe default), `keep-33-only`, `keep-34-only`, or `none`.
+   * **`debloat_gsi`**: Toggle removal of non-Realme Phh keylayouts and test packages.
+   * **`inject_rmx3834_patches`**: Inject files and props located in `device/rmx3834/`.
+   * **`publish_release`**: Automatically create a GitHub Release with the finished `.img.xz` file.
+4. Once completed, download your tailored image from the workflow **Artifacts** or the repository **Releases** page.
 
 ---
 
-## 🗺️ Development Roadmap
+## 📂 Adding RMX3834 Device Files (`device/rmx3834/`)
 
-- [x] Initialize repository structure and workflow blueprint
-- [x] Configure GitHub Actions environment with `erofs-utils`, `android-sdk-libsparse-utils`, and `xz-utils`
-- [ ] Upload stock RMX3834 vendor/boot/dtbo reference blobs to GitHub Releases
-- [ ] Extract and compile standalone RMX3834 hardware overlay APK (`treble-overlay-realme-rmx3834.apk`)
-- [ ] Implement automated `system.prop` and Phh-Treble setting injection script
-- [ ] Add `lpmake` script to optionally compile a full flashable `super.img` combining GSI `system` + stock `vendor`, `product`, and `system_ext`
+Any file placed inside `device/rmx3834/system/` mirrors `/system/` inside the GSI and is automatically copied over during step 2 of the pipeline:
+* Place compiled hardware overlay APKs in `device/rmx3834/system/product/overlay/`
+* Place display configs in `device/rmx3834/system/etc/displayconfig/`
+* Add property overrides in `device/rmx3834/system.prop`
 
 ---
 
 ## ⚠️ Disclaimer
 
-> Flashing custom system images carries inherent risks. Always ensure your bootloader is unlocked, keep a backup of your stock `boot.img`, `vbmeta.img`, and `super.img` (or stock `.pac` firmware), and flash at your own responsibility.
-
----
-
-## 🤝 Credits & Acknowledgments
-
-* **[Phhusson](https://github.com/phhusson)** & **[TrebleDroid](https://github.com/TrebleDroid)** for the core Project Treble GSI foundation and hardware overlays.
-* Upstream GSI maintainers (**Doze-off / dotj**, **Ponce**, **AndyYan**, **Nazim**, **MisterZtr**) for their continuous GSI builds.
+> Custom GSI images are provided without warranty. Always keep a backup of your stock `boot.img`, `vendor_boot.img`, `vbmeta.img`, and `super.img` before flashing via Fastbootd or DSU Sideloader.
